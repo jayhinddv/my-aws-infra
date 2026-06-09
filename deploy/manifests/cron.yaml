@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cron
+  namespace: crm
+spec:
+  replicas: 1                    # MUST stay 1 - singleton (cron leader election)
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: cron }
+  template:
+    metadata:
+      labels: { app: cron }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: cron
+          image: ghcr.io/paidalabs-iref/crm-backend:prod
+          imagePullPolicy: Always
+          command: ["node", "scripts/cron-worker.js"]
+          envFrom:
+            - secretRef: { name: backend-env }
+            - configMapRef: { name: backend-overrides }

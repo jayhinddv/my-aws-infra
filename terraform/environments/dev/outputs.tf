@@ -35,6 +35,21 @@ output "join_command_ssm_param" {
   value       = aws_ssm_parameter.join_command.name
 }
 
+output "rds_endpoint" {
+  description = "RDS endpoint (host:port)"
+  value       = module.rds.endpoint
+}
+
+output "rds_host" {
+  description = "RDS hostname - use this verbatim as DB_HOST in the app secret/configmap"
+  value       = module.rds.address
+}
+
+output "rds_instance_id" {
+  description = "RDS identifier (for scripts/stop.sh --with-rds)"
+  value       = module.rds.instance_id
+}
+
 output "next_steps" {
-  value = "1) terraform apply  2) run Ansible playbooks/cluster.yml (inits master, writes join cmd to SSM)  3) workers auto-join"
+  value = "1) terraform apply  2) run Ansible playbooks/cluster.yml (inits master, writes join cmd to SSM)  3) workers auto-join  4) deploy/deploy.sh (renders DB_HOST from rds_host, applies manifests)"
 }

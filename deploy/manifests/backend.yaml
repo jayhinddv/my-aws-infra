@@ -1,0 +1,76 @@
+# Adapted from the VPS k8s/prod-vps/backend.yaml.
+# Everything else (DB_*, JWT_SECRET, MINIO_*, etc.) comes from the backend-env
+# secret you create from .env (see deploy/README.md).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-overrides
+  namespace: crm
+data:
+  NODE_ENV: production
+  PORT: "9001"
+  CHROME_PATH: /usr/bin/chromium-browser
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: Jayhind@redis
+  PYTHON_SERVICE_URL: http://python-svc:9100
+  # On the VPS, DB_HOST pointed at the CNI bridge IP (the host's Postgres).
+  # On AWS there is no host Postgres: DB_HOST is the RDS endpoint.
+  # deploy.sh renders this from `terraform output -raw rds_host`.
+  DB_HOST: "__DB_HOST__"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: crm
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0     # never let live count drop below replicas
+  selector:
+    matchLabels: { app: backend }
+  template:
+    metadata:
+      labels: { app: backend }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: backend
+          image: ghcr.io/paidalabs-iref/crm-backend:prod
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef: { name: backend-env }
+            - configMapRef: { name: backend-overrides }
+          ports:
+            - containerPort: 9001
+          readinessProbe:
+            httpGet: { path: /health, port: 9001 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 9001 }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 10"]   # let kube-proxy/ingress drain before exit
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: crm
+spec:
+  type: NodePort
+  selector: { app: backend }
+  ports:
+    - port: 9001
+      targetPort: 9001
+      nodePort: 30902

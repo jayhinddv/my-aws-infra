@@ -32,3 +32,10 @@ ingress_allowed_cidr = "0.0.0.0/0"
 # --- SSH keys ---
 ssh_public_key_path  = "~/.ssh/crm_dev_ed25519.pub"
 ssh_private_key_path = "~/.ssh/crm_dev_ed25519"
+
+# --- Database (RDS PostgreSQL) ---
+# db_password is intentionally NOT stored here. Set it before apply:
+#   export TF_VAR_db_password='your-strong-password'
+db_name           = "prod_crm"
+db_username       = "vi_admin"
+db_instance_class = "db.t3.micro" # free-tier eligible

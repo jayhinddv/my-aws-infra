@@ -129,3 +129,25 @@ module "worker_pool" {
 
   tags = local.tags
 }
+
+# Managed PostgreSQL for the CRM app. The app's DB_HOST points here (the VPS
+# host-Postgres trick has no AWS equivalent). RDS is independent of the EC2
+# stop/start cost-saver - stopping the cluster does not touch the database.
+module "rds" {
+  source = "../../modules/rds"
+
+  name       = local.name
+  vpc_id     = module.vpc.vpc_id
+  subnet_ids = module.vpc.private_subnet_ids
+  allowed_security_group_ids = [
+    module.security.worker_sg_id,
+    module.security.control_plane_sg_id,
+  ]
+
+  db_name        = var.db_name
+  db_username    = var.db_username
+  db_password    = var.db_password
+  instance_class = var.db_instance_class
+
+  tags = local.tags
+}

@@ -1,0 +1,29 @@
+# UNLIKE the VPS (where docker compose owned migrations), on AWS there is no
+# docker compose - k8s drives migrations against RDS. deploy.sh runs this Job
+# and waits for it before rolling out the app. Excluded from kustomization.yaml
+# because a fixed-name Job must be deleted before re-applying.
+#
+# Manual run:
+#   kubectl -n crm delete job/migrate --ignore-not-found
+#   kubectl apply -f deploy/manifests/migrate.yaml
+#   kubectl -n crm wait --for=condition=complete job/migrate --timeout=300s
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: crm
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: migrate
+          image: ghcr.io/paidalabs-iref/crm-backend:prod
+          imagePullPolicy: Always
+          command: ["node", "scripts/migrate.js"]
+          envFrom:
+            - secretRef: { name: backend-env }
+            - configMapRef: { name: backend-overrides }

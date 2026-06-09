@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-scheduler
+  namespace: crm
+spec:
+  replicas: 1                    # MUST stay 1 - singleton
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: email-scheduler }
+  template:
+    metadata:
+      labels: { app: email-scheduler }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: email-scheduler
+          image: ghcr.io/paidalabs-iref/crm-backend:prod
+          imagePullPolicy: Always
+          command: ["node", "scripts/email-scheduler.js"]
+          envFrom:
+            - secretRef: { name: backend-env }
+            - configMapRef: { name: backend-overrides }

@@ -110,3 +110,25 @@ variable "ssh_private_key_path" {
   type    = string
   default = "~/.ssh/crm_dev_ed25519"
 }
+
+# --- Database (RDS PostgreSQL) ----------------------------------------------
+variable "db_name" {
+  type    = string
+  default = "crm"
+}
+
+variable "db_username" {
+  type    = string
+  default = "crm"
+}
+
+variable "db_password" {
+  description = "RDS master password. Provide via TF_VAR_db_password env var (preferred) or a non-committed secrets tfvars - never hardcode in dev.tfvars."
+  type        = string
+  sensitive   = true
+}
+
+variable "db_instance_class" {
+  type    = string
+  default = "db.t3.micro"
+}
